@@ -36,10 +36,12 @@ def make_dataset(path: str) -> Tuple[List[str], List[str]]:
     ############################
     ### TODO: YOUR CODE HERE ###
 
-    raise NotImplementedError(
-        "`make_dataset` function in `part2_datasets.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`make_dataset` function in `part2_datasets.py` needs to be implemented"
+    # )
 
+    images_a = [path + '/1a_dog', path + '/2a_motorcycle', path + '/3a_plane', path + '/4a_einstein', path + '/5a_submarine']
+    images_b = [path + '/1b_cat', path + '/2b_bicycle', path + '/3b_bird', path + '/4b_marilyn', path + '/5b_fish']
     ### END OF STUDENT CODE ####
     ############################
 
@@ -64,10 +66,18 @@ def get_cutoff_frequencies(path: str) -> List[int]:
     ############################
     ### TODO: YOUR CODE HERE ###
 
-    raise NotImplementedError(
-        "`get_cutoff_frequencies` function in "
-        + "`part2_datasets.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`get_cutoff_frequencies` function in "
+    #     + "`part2_datasets.py` needs to be implemented"
+    # )
+
+    with open(path, 'r') as file:
+        line = file.read()
+    
+    cutoff_frequencies = []
+
+    for l in range(len(line) // 2):
+        cutoff_frequencies.append(int(line[l*2]))
 
     ### END OF STUDENT CODE ####
     ############################
@@ -96,13 +106,14 @@ class HybridImageDataset(data.Dataset):
         images_a, images_b = make_dataset(image_dir)
         cutoff_frequencies = get_cutoff_frequencies(cf_file)
 
-        self.transform = None
+        self.transform = transforms.ToTensor()
+
         ############################
         ### TODO: YOUR CODE HERE ###
-
-        raise NotImplementedError(
-            "`self.transform` function in `part2_datasets.py` needs to be implemented"
-        )
+        
+        # raise NotImplementedError(
+        #     "`self.transform` function in `part2_datasets.py` needs to be implemented"
+        # )
 
         ### END OF STUDENT CODE ####
         ############################
@@ -116,10 +127,11 @@ class HybridImageDataset(data.Dataset):
 
         ############################
         ### TODO: YOUR CODE HERE ###
+        # raise NotImplementedError(
+        #     "`__len__` function in `part2_datasets.py` needs to be implemented"
+        # )
 
-        raise NotImplementedError(
-            "`__len__` function in `part2_datasets.py` needs to be implemented"
-        )
+        return len(self.images_a)
 
         ### END OF STUDENT CODE ####
         ############################
@@ -151,9 +163,20 @@ class HybridImageDataset(data.Dataset):
         ############################
         ### TODO: YOUR CODE HERE ###
 
-        raise NotImplementedError(
-            "`__getitem__ function in `part2_datasets.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`__getitem__ function in `part2_datasets.py` needs to be implemented"
+        # )
+
+        a_name = self.images_a[idx] + '.bmp'
+        b_name = self.images_b[idx] + '.bmp'
+
+        image_a = PIL.Image.open(a_name)
+        image_b = PIL.Image.open(b_name)
+
+        image_a = self.transform(image_a)
+        image_b = self.transform(image_b)
+
+        cutoff_frequency = self.cutoff_frequencies[idx]
 
         ### END OF STUDENT CODE ####
         ############################
