@@ -34,10 +34,12 @@ def my_conv2d_pytorch(image: torch.Tensor, kernel: torch.Tensor) -> torch.Tensor
 
     ############################
     ### TODO: YOUR CODE HERE ###
-
-    raise NotImplementedError(
-        "`my_conv2d_pytorch` function in `part3.py` needs to be implemented"
-    )
+    kernel_size = kernel.size(2)
+    padding = (kernel_size // 2)
+    filtered_image = F.conv2d(image, kernel, padding=padding, groups=image.size(1))
+    # raise NotImplementedError(
+    #     "`my_conv2d_pytorch` function in `part3.py` needs to be implemented"
+    # )
 
     ### END OF STUDENT CODE ####
     ############################

@@ -34,9 +34,18 @@ def my_conv2d_freq(image: np.ndarray, filter: np.ndarray) -> np.ndarray:
     ############################
     ### TODO: YOUR CODE HERE ###
 
-    raise NotImplementedError(
-        "`my_conv2d_freq` function in `part4.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`my_conv2d_freq` function in `part4.py` needs to be implemented"
+    # )
+    m, n = image.shape
+    k, j = filter.shape
+
+    filter_padded = np.zeros((m, n), dtype=np.float32)
+    filter_padded[:k, :j] = filter
+    image_freq = np.fft.fft2(image)
+    filter_freq = np.fft.fft2(filter_padded)
+    conv_result_freq = image_freq * filter_freq
+    conv_result = np.real(np.fft.ifft2(conv_result_freq))
 
     ### END OF STUDENT CODE ####
     ############################
@@ -75,9 +84,20 @@ def my_deconv2d_freq(image: np.ndarray, filter: np.ndarray) -> np.ndarray:
     ############################
     ### TODO: YOUR CODE HERE ###
 
-    raise NotImplementedError(
-        "`my_deconv2d_freq` function in `part4.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`my_deconv2d_freq` function in `part4.py` needs to be implemented"
+    # )
+
+    m, n = image.shape
+    k, j = filter.shape
+    filter_padded = np.zeros((m, n), dtype=np.float32)
+    filter_padded[:k, :j] = filter
+    image_freq = np.fft.fft2(image)
+    filter_freq = np.fft.fft2(filter_padded)
+    deconv_result_freq = np.zeros_like(image_freq)
+    nonzero_mask = (filter_freq != 0)
+    deconv_result_freq[nonzero_mask] = image_freq[nonzero_mask] / filter_freq[nonzero_mask]
+    deconv_result = np.real(np.fft.ifft2(deconv_result_freq))
 
     ### END OF STUDENT CODE ####
     ############################
