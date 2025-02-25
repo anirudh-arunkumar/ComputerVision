@@ -2,7 +2,7 @@
 
 import numpy as np
 import torch
-
+import torch.nn.functional as F
 from torch import nn
 from typing import Tuple
 
@@ -39,8 +39,17 @@ def compute_image_gradients(image_bw: np.ndarray) -> Tuple[np.ndarray, np.ndarra
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
     
-    raise NotImplementedError('`compute_image_gradients` function in ' +
-        '`part1_harris_corner.py` needs to be implemented')
+    # raise NotImplementedError('`compute_image_gradients` function in ' +
+    #     '`part1_harris_corner.py` needs to be implemented')
+
+    image_bw = torch.tensor(image_bw, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+    sobel_x = torch.tensor(SOBEL_X_KERNEL, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+    sobel_y = torch.tensor(SOBEL_Y_KERNEL, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+    Ix = F.conv2d(image_bw, sobel_x, padding=1)
+    Iy = F.conv2d(image_bw, sobel_y, padding=1)
+
+    Ix = Ix.squeeze().numpy()
+    Iy = Iy.squeeze().numpy()
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
