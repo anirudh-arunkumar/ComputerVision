@@ -179,8 +179,13 @@ def compute_harris_response_map(
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`compute_harris_response_map` function in ' +
-        '`part1_harris_corner.py` needs to be implemented')
+    # raise NotImplementedError('`compute_harris_response_map` function in ' +
+    #     '`part1_harris_corner.py` needs to be implemented')
+
+    S_xx, S_yy, S_xy = second_moments(image_bw=image_bw, ksize=ksize, sigma=sigma)
+    determinant = (S_xx * S_yy) - (S_xy ** 2)
+    trace = S_xx + S_yy
+    R = determinant - alpha * (trace ** 2)
 
     ###########################################################################
     #                           END OF YOUR CODE                              #
@@ -351,8 +356,13 @@ def get_harris_interest_points(
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`get_harris_interest_points` function in ' +
-        '`part1_harris_corner.py` needs to be implemented')
+    # raise NotImplementedError('`get_harris_interest_points` function in ' +
+    #     '`part1_harris_corner.py` needs to be implemented')
+
+    R = compute_harris_response_map(image_bw=image_bw, ksize=7, sigma=5, alpha=0.05)
+    R = (R - np.min(R)) / (np.max(R) - np.min(R) + 1e-8)
+    x, y, c = nms_maxpool_pytorch(R, k=k, ksize=7)
+    x, y, c = remove_border_vals(image_bw, x, y, c)
 
     ###########################################################################
     #                           END OF YOUR CODE                              #

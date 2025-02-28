@@ -71,11 +71,19 @@ def calculate_projection_matrix(
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError(
-        "`calculate_projection_matrix` function in "
-        + "`projection_matrix.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`calculate_projection_matrix` function in "
+    #     + "`projection_matrix.py` needs to be implemented"
+    # )
 
+    mat = assemble_matrix(points_2d=points_2d, points_3d=points_3d)
+    temp1, temp2, V = np.linalg.svd(mat)
+    flattened_matrix = V[-1, :]
+    matrix = flattened_matrix.reshape((3, 4))
+
+    if not np.isclose(matrix[-1, -1], 0):
+        matrix /= matrix[-1, -1]
+    M = matrix
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -103,9 +111,18 @@ def projection(P: np.ndarray, points_3d: np.ndarray) -> np.ndarray:
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError(
-        "`projection` function in " + "`projection_matrix.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`projection` function in " + "`projection_matrix.py` needs to be implemented"
+    # )
+
+    n = points_3d.shape[0]
+    ones = np.ones((n, 1))
+    third_points = np.hstack([points_3d, ones])
+    projected = third_points @ P.T
+
+    x = projected[:, 0] / projected[:, 2]
+    y = projected[:, 1] / projected[:, 2]
+    projected_points_2d = np.column_stack((x, y))
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -132,10 +149,15 @@ def calculate_camera_center(M: np.ndarray) -> np.ndarray:
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError(
-        "`calculate_camera_center` function in "
-        + "`projection_matrix.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`calculate_camera_center` function in "
+    #     + "`projection_matrix.py` needs to be implemented"
+    # )
+
+    q = M[:, :3]
+    b = M[:, 3]
+    camera_center = -np.linalg.inv(q) @ b
+    cc = camera_center
 
     ###########################################################################
     #                             END OF YOUR CODE                            #

@@ -77,8 +77,24 @@ def match_features_ratio_test(
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`match_features_ratio_test` function in ' +
-        '`part3_feature_matching.py` needs to be implemented')
+    # raise NotImplementedError('`match_features_ratio_test` function in ' +
+    #     '`part3_feature_matching.py` needs to be implemented')
+
+    distances = compute_feature_distances(features1=features1, features2=features2)
+    idx = np.argsort(distances, axis=1)
+    neighbors = idx[:, 0]
+    second_neighbor = idx[:, 1]
+
+    lowe_1 = distances[np.arange(distances.shape[0]), neighbors]
+    lowe_2 = distances[np.arange(distances.shape[0]), second_neighbor]
+    lowes_ratio = lowe_1 / (lowe_2 + 1e-8)
+
+    valid = lowes_ratio < 0.8
+    matches = np.column_stack((np.where(valid)[0], neighbors[valid]))
+    score = 1 - lowes_ratio[valid]
+    sorted_idx = np.argsort(score)[::-1]
+    matches = matches[sorted_idx]
+    confidences = score[sorted_idx]
 
     ###########################################################################
     #                             END OF YOUR CODE                            #

@@ -27,11 +27,20 @@ def calculate_num_ransac_iterations(
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError(
-        "`calculate_num_ransac_iterations` function "
-        + "in `ransac.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`calculate_num_ransac_iterations` function "
+    #     + "in `ransac.py` needs to be implemented"
+    # )
 
+    correct = ind_prob_correct ** sample_size
+
+    if correct == 0:
+        return float('inf')
+    
+    num_samples = math.log(1 - prob_success) / math.log(1 - correct)
+    num_samples = int(math.ceil(num_samples))
+
+    print(f"Sample Size: {sample_size}, Required RANSAC Iterations: {num_samples}")
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -84,10 +93,57 @@ def ransac_fundamental_matrix(
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError(
-        "`ransac_fundamental_matrix` function in "
-        + "`ransac.py` needs to be implemented"
-    )
+
+
+    # raise NotImplementedError(
+    #     "`ransac_fundamental_matrix` function in "
+    #     + "`ransac.py` needs to be implemented"
+    # )
+
+    thres = 0.1
+    sample_size = 9
+    succes = 0.99
+    correct = 0.5
+    total_matches = matches_a.shape[0]
+    num_samples = calculate_num_ransac_iterations(prob_success=succes, sample_size=sample_size, ind_prob_correct=correct)
+    homo_a = np.hstack([matches_a, np.ones((total_matches, 1))])
+    homo_b = np.hstack([matches_b, np.ones((total_matches, 1))])
+    inlier_c =0
+    inlier_idx = None
+    F_best = None
+
+    for i in range(num_samples):
+        idx = np.random.choice(total_matches, sample_size, replace=False)
+        a_sample = matches_a[idx]
+        b_sample = matches_b[idx]
+
+        try:
+            candidate = estimate_fundamental_matrix(a_sample, b_sample)
+        except Exception:
+            continue
+
+        epi_lines = (candidate @ homo_a.T).T
+        err = np.abs(np.sum(homo_b * epi_lines, axis=1)) / np.sqrt(epi_lines[:, 0]**2 + epi_lines[:, 1]**2 + 1e-8)
+        indexes = np.where(err < thres)[0]
+        count = len(indexes)
+
+        if count > inlier_c:
+            inlier_c = count
+            F_best = candidate
+            inlier_idx = indexes
+
+
+    if F_best is None or inlier_idx is None:
+        F_best = np.eye(3)
+        a_inliers = np.array([])
+        b_inliers = np.array([])
+    else:
+        a_inliers = matches_a[inlier_idx]
+        b_inliers = matches_b[inlier_idx] 
+
+    best_F = F_best
+    inliers_a = a_inliers
+    inliers_b = b_inliers
 
     ###########################################################################
     #                             END OF YOUR CODE                            #

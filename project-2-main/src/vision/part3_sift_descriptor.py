@@ -49,8 +49,12 @@ def get_magnitudes_and_orientations(
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`get_magnitudes_and_orientations()` function ' +
-        'in `part4_sift_descriptor.py` needs to be implemented')
+    # raise NotImplementedError('`get_magnitudes_and_orientations()` function ' +
+    #     'in `part4_sift_descriptor.py` needs to be implemented')
+    Ix = Ix.astype(np.float64)
+    Iy = Iy.astype(np.float64)
+    magnitudes = np.sqrt(Ix**2 + Iy**2)
+    orientations = np.arctan2(Iy, Ix)
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -102,8 +106,27 @@ def get_gradient_histogram_vec_from_patch(
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`get_gradient_histogram_vec_from_patch` ' +
-        'function in `part4_sift_descriptor.py` needs to be implemented')
+    # raise NotImplementedError('`get_gradient_histogram_vec_from_patch` ' +
+    #     'function in `part4_sift_descriptor.py` needs to be implemented')
+    cells = 4
+    histograms = []
+
+    for i in range(cells):
+        for j in range(cells):
+
+            start_row = i * 4
+            end_row = start_row + 4
+            
+            start_col = j * 4
+            end_col = start_col + 4
+
+            magnitudes = window_magnitudes[start_row:end_row, start_col:end_col]
+            orientations = window_orientations[start_row:end_row, start_col:end_col]
+
+            box, _ = np.histogram(orientations, bins=bins, weights=magnitudes)
+            histograms.append(box)
+    
+    wgh = np.concatenate(histograms).reshape((128, 1))
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -164,8 +187,25 @@ def get_feat_vec(
     # TODO: YOUR CODE HERE                                                      #                                          #
     #############################################################################
 
-    raise NotImplementedError('`get_feat_vec` function in ' +
-        '`student_sift.py` needs to be implemented')
+    # raise NotImplementedError('`get_feat_vec` function in ' +
+    #     '`student_sift.py` needs to be implemented')
+
+    r_integer = int(round(r))
+    c_integer = int(round(c))
+
+    half = feature_width // 2
+    top = r_integer - (half - 1)
+    bottom = r_integer + half + 1
+    left = c_integer - (half - 1)
+    right = c_integer + half + 1
+    p_magnitudes = magnitudes[top:bottom, left:right]
+    p_orientations = orientations[top:bottom, left:right]
+    vector = get_gradient_histogram_vec_from_patch(p_magnitudes, p_orientations)
+
+    normalized = np.linalg.norm(vector) + 1e-8
+    vector /= normalized
+
+    fv = np.sqrt(vector)
 
     #############################################################################
     #                             END OF YOUR CODE                              #
@@ -204,9 +244,20 @@ def get_SIFT_descriptors(
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`get_SIFT_descriptors` function in ' +
-        '`part4_sift_descriptor.py` needs to be implemented')
+    # raise NotImplementedError('`get_SIFT_descriptors` function in ' +
+    #     '`part4_sift_descriptor.py` needs to be implemented')
 
+    Ix, Iy = compute_image_gradients(image_bw=image_bw)
+    magnitudes, orientations = get_magnitudes_and_orientations(Ix=Ix, Iy=Iy)
+
+    keypoints = X.shape[0]
+    dimensions = 128
+    fvs = np.zeros((keypoints, dimensions))
+
+    for i in range(X.shape[0]):
+        fv = get_feat_vec(c=X[i], r=Y[i], magnitudes=magnitudes, orientations=orientations, feature_width=feature_width)
+        fvs[i, :] = fv.flatten()
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
