@@ -34,10 +34,14 @@ def get_optimizer(
     # Student code begin
     ############################################################################
 
-    raise NotImplementedError(
-            "`get_optimizer` function in "
-            + "`optimizer.py` needs to be implemented"
-        )
+    # raise NotImplementedError(
+    #         "`get_optimizer` function in "
+    #         + "`optimizer.py` needs to be implemented"
+    #     )
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    
+    # optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay, momentum=config.get("momentum", 0.9))
 
     ############################################################################
     # Student code end

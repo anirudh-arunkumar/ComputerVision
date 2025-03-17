@@ -14,18 +14,32 @@ class MyResNet18(nn.Module):
         """
         super().__init__()
 
-        self.conv_layers = None
-        self.fc_layers = None
-        self.loss_criterion = None
+        # self.conv_layers = None
+        # self.fc_layers = None
+        # self.loss_criterion = None
 
         ############################################################################
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`__init__` function in "
-            + "`my_resnet.py` needs to be implemented"
-        )
+        resnet = resnet18(pretrained=True)
+
+        for p in resnet.parameters():
+            p.requires_grad = False
+        
+        feature_count = resnet.fc.in_features
+        resnet.fc = nn.Linear(feature_count, 15)
+
+        for p in resnet.fc.parameters():
+            p.requires_grad = True
+        
+        self.conv_layers = nn.Sequential(*list(resnet.children())[:-1])
+        self.fc_layers = resnet.fc
+        self.loss_criterion = nn.CrossEntropyLoss(reduction="mean")
+        # raise NotImplementedError(
+        #     "`__init__` function in "
+        #     + "`my_resnet.py` needs to be implemented"
+        # )
 
         ############################################################################
         # Student code end
@@ -46,10 +60,14 @@ class MyResNet18(nn.Module):
         # Student code begin
         ############################################################################
         
-        raise NotImplementedError(
-            "`forward` function in "
-            + "`my_resnet.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`forward` function in "
+        #     + "`my_resnet.py` needs to be implemented"
+        # )
+
+        x = self.conv_layers(x)
+        x = x.view(x.size(0), -1)
+        model_output = self.fc_layers(x)
 
         ############################################################################
         # Student code end

@@ -50,10 +50,18 @@ def get_fundamental_augmentation_transforms(
     # Student code begin
     ###########################################################################
 
-    raise NotImplementedError(
-        "`get_fundamental_augmentation_transforms` function in "
-        + "`data_transforms.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`get_fundamental_augmentation_transforms` function in "
+    #     + "`data_transforms.py` needs to be implemented"
+    # )
+
+    fund_aug_transforms = transforms.Compose([
+        transforms.Resize((int(inp_size[0] * 1.1), int(inp_size[1] * 1.1))),
+        transforms.RandomCrop(inp_size),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomRotation(15),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        transforms.ToTensor()])
 
     ###########################################################################
     # Student code end
@@ -80,10 +88,15 @@ def get_fundamental_normalization_transforms(
     # Student code begins
     ###########################################################################
 
-    raise NotImplementedError(
-        "`get_fundamental_normalization_transforms` function in "
-        + "`data_transforms.py` needs to be implemented"
-    )
+    fund_norm_transforms = transforms.Compose([
+        transforms.Resize(inp_size),
+        transforms.ToTensor(),
+        transforms.Normalize(pixel_mean, pixel_std)
+    ])
+    # raise NotImplementedError(
+    #     "`get_fundamental_normalization_transforms` function in "
+    #     + "`data_transforms.py` needs to be implemented"
+    # )
 
     ###########################################################################
     # Student code ends
@@ -110,10 +123,19 @@ def get_all_transforms(
     # Student code begins
     ###########################################################################
 
-    raise NotImplementedError(
-        "`get_all_transforms` function in "
-        + "`data_transforms.py` needs to be implemented"
-    )
+    all_transforms = transforms.Compose([
+        transforms.Resize((int(inp_size[0] * 1.1), int(inp_size[1] * 1.1))),
+        transforms.RandomCrop(inp_size),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomRotation(15),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        transforms.ToTensor(),
+        transforms.Normalize(pixel_mean, pixel_std)
+    ])
+    # raise NotImplementedError(
+    #     "`get_all_transforms` function in "
+    #     + "`data_transforms.py` needs to be implemented"
+    # )
 
     ###########################################################################
     # Student code ends
