@@ -21,10 +21,12 @@ def get_fundamental_transforms(inp_size: Tuple[int, int]) -> transforms.Compose:
     # Student code begins
     ###########################################################################
 
-    raise NotImplementedError(
-        "`get_fundamental_transforms` function in "
-        + "`data_transforms.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`get_fundamental_transforms` function in "
+    #     + "`data_transforms.py` needs to be implemented"
+    # )
+
+    fundamental_transforms = transforms.Compose([transforms.Resize(inp_size), transforms.ToTensor(),])
 
     ###########################################################################
     # Student code ends
