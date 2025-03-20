@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet18
+from torchvision.models import resnet18, ResNet18_Weights
 
 
 class MyResNet18(nn.Module):
@@ -22,7 +22,7 @@ class MyResNet18(nn.Module):
         # Student code begin
         ############################################################################
 
-        resnet = resnet18(pretrained=True)
+        resnet = resnet18(weights=ResNet18_Weights.DEFAULT)
 
         for p in resnet.parameters():
             p.requires_grad = False
@@ -66,8 +66,8 @@ class MyResNet18(nn.Module):
         # )
 
         x = self.conv_layers(x)
-        x = x.view(x.size(0), -1)
-        model_output = self.fc_layers(x)
+        model_output = x.view(x.size(0), -1)
+        model_output = self.fc_layers(model_output)
 
         ############################################################################
         # Student code end

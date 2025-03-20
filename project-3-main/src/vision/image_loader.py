@@ -69,7 +69,6 @@ class ImageLoader(data.Dataset):
 
         for c_name, label in class_labels.items():
             path = os.path.join(self.curr_folder, c_name)
-
             for file in glob.glob(os.path.join(path, "*.jpg")):
                 img_paths.append((file, label))
 
@@ -103,11 +102,7 @@ class ImageLoader(data.Dataset):
         #     "`get_classes` function in "
         #     + "`image_loader.py` needs to be implemented"
         # )
-        c_name = sorted([
-            i for i in os.listdir(self.curr_folder) 
-            if os.path.isdir(os.path.join(self.curr_folder, i))
-        ])
-
+        c_name = sorted([i for i in os.listdir(self.curr_folder) if os.path.isdir(os.path.join(self.curr_folder, i))])
         classes = {c_name: index for index, c_name in enumerate(c_name)}
 
 
@@ -259,10 +254,22 @@ class MultiLabelImageLoader(data.Dataset):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`load_imagepaths_with_labels` function in "
-            + "`image_loader.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`load_imagepaths_with_labels` function in "
+        #     + "`image_loader.py` needs to be implemented"
+        # )
+        valid = ["coast", "highway", "mountain", "opencountry", "street"]
+        df = pd.read_csv(self.labels_csv)
+        for i, r in df.iterrows():
+            a_name = r.iloc[0]
+            if a_name not in valid:
+                continue
+            img_file = r.iloc[1]
+            path = os.path.join(self.curr_folder, a_name, img_file)
+            vals = r.iloc[2 : 2 + 7]
+            vector = [int(val) for val in vals]
+            tensor = torch.tensor(vector, dtype=torch.float32)
+            img_paths.append((path, tensor))
 
         ############################################################################
         # Student code end
@@ -288,10 +295,12 @@ class MultiLabelImageLoader(data.Dataset):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`load_img_from_path` function in "
-            + "`image_loader.py` needs to be implemented"
-        )
+
+        img = Image.open(path).convert("L")
+        # raise NotImplementedError(
+        #     "`load_img_from_path` function in "
+        #     + "`image_loader.py` needs to be implemented"
+        # )
 
 
         ############################################################################
@@ -322,10 +331,15 @@ class MultiLabelImageLoader(data.Dataset):
         # Student code start
         ############################################################################
 
-        raise NotImplementedError(
-            "`__getitem__` function in "
-            + "`image_loader.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`__getitem__` function in "
+        #     + "`image_loader.py` needs to be implemented"
+        # )
+
+        path, class_idxs = self.dataset[index]
+        img = self.load_img_from_path(path=path)
+        if self.transform:
+            img = self.transform(img)
 
         ############################################################################
         # Student code end
@@ -345,10 +359,12 @@ class MultiLabelImageLoader(data.Dataset):
         # Student code start
         ############################################################################
 
-        raise NotImplementedError(
-            "`__len__` function in "
-            + "`image_loader.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`__len__` function in "
+        #     + "`image_loader.py` needs to be implemented"
+        # )
+
+        l = len(self.dataset)
         ############################################################################
         # Student code end
         ############################################################################

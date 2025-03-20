@@ -12,8 +12,6 @@ class SimpleNet(nn.Module):
         """
         super(SimpleNet, self).__init__()
 
-        
-
         ############################################################################
         # Student code begin
         ############################################################################
@@ -32,11 +30,7 @@ class SimpleNet(nn.Module):
             nn.MaxPool2d(kernel_size=2)
         )
         
-        self.fc_layers = nn.Sequential(
-            nn.Linear(in_features=16*16*16, out_features=128),
-            nn.ReLU(),
-            nn.Linear(in_features=128, out_features=15)
-        )
+        self.fc_layers = nn.Sequential(nn.Linear(in_features=16*16*16, out_features=128), nn.ReLU(), nn.Linear(in_features=128, out_features=15))
         self.loss_criterion = nn.CrossEntropyLoss(reduction='mean')
 
         ############################################################################

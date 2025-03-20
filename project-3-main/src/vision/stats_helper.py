@@ -37,11 +37,9 @@ def compute_mean_and_std(dir_name: str) -> Tuple[float, float]:
 
     pattern = os.path.join(dir_name, '**', '*.jpg')
     files = glob.glob(pattern, recursive=True)
-
-    sum_total = 0
     sq_sum = 0
     count = 0
-
+    sum_total = 0
     for f in files:
         img = Image.open(f).convert('L')
         arr = np.array(img, dtype=np.float32) / 255.0

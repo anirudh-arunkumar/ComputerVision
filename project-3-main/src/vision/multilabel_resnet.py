@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet18
+from torchvision.models import resnet18, ResNet18_Weights
 
 
 class MultilabelResNet18(nn.Module):
@@ -24,10 +24,26 @@ class MultilabelResNet18(nn.Module):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`__init__` function in "
-            + "`multi_resnet.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`__init__` function in "
+        #     + "`multi_resnet.py` needs to be implemented"
+        # )
+
+        resnet = resnet18(weights=ResNet18_Weights.DEFAULT)
+
+        for p in resnet.parameters():
+            p.requires_grad = False
+
+        counter = resnet.fc.in_features
+        resnet.fc = nn.Linear(counter, 7)
+
+        for p in resnet.fc.parameters():
+            p.requires_grad = True
+
+        self.conv_layers = nn.Sequential(*list(resnet.children())[:-1])
+        self.fc_layers = resnet.fc
+        self.activation = nn.Sigmoid()
+        self.loss_criterion = nn.BCELoss(reduction="mean")
 
         ############################################################################
         # Student code end
@@ -48,11 +64,15 @@ class MultilabelResNet18(nn.Module):
         # Student code begin
         ############################################################################
         
-        raise NotImplementedError(
-            "`forward` function in "
-            + "`multi_resnet.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`forward` function in "
+        #     + "`multi_resnet.py` needs to be implemented"
+        # )
 
+        x = self.conv_layers(x)
+        x = x.view(x.size(0), -1)
+        model_output = self.fc_layers(x)
+        model_output = self.activation(model_output)
         ############################################################################
         # Student code end
         ############################################################################

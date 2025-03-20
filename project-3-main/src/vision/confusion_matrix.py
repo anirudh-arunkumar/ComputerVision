@@ -31,30 +31,48 @@ def generate_confusion_data(
 
     batch_size = 32
     cuda = use_cuda and torch.cuda.is_available()
-    dataloader_args = {"num_workers": 1, "pin_memory": True} if cuda else {}
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    dataloader_args = {"num_workers": 1, "pin_memory": True} if device.type != "cpu" else {}
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, **dataloader_args)
 
-    preds = np.zeros(len(dataset)).astype(np.int32)
-    targets = np.zeros(len(dataset)).astype(np.int32)
+    preds = torch.zeros(len(dataset), dtype=torch.int32, device=device)
+    targets = torch.zeros(len(dataset), dtype=torch.int32, device=device)
     label_to_idx = dataset.get_classes()
-    class_labels = [""] * len(label_to_idx)
+    class_labels = [None] * len(label_to_idx)
 
+    for label_name, i in label_to_idx.items():
+        class_labels[i] = label_name
+    model = model.to(device)
     model.eval()
     ##########################################################################
     # Student code begins here
     ##########################################################################
 
-    raise NotImplementedError(
-        "`generate_confusion_data` function in "
-        + "`confusion_matrix.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`generate_confusion_data` function in "
+    #     + "`confusion_matrix.py` needs to be implemented"
+    # )
+    
+    counter = 0
+
+    with torch.no_grad():
+        for img, labels, in loader:
+
+            img = img.to(device).float()
+            labels = labels.to(device)
+            outputs = model(img)
+            pred = outputs.argmax(dim=1)
+            actual_size = labels.size(0)
+            targets[counter:counter+actual_size] = labels
+            preds[counter:counter+actual_size] = pred
+            counter += actual_size
 
     ##########################################################################
     # Student code ends here
     ##########################################################################
     model.train()
 
-    return targets.cpu().numpy(), preds.cpu().numpy(), class_labels
+    return targets.cpu().detach().numpy(), preds.cpu().detach().numpy(), class_labels
 
 
 def generate_confusion_matrix(
@@ -98,10 +116,11 @@ def generate_confusion_matrix(
         # Student code begins here
         ##########################################################################
     
-        raise NotImplementedError(
-            "`generate_confusion_matrix` function in "
-            + "`confusion_matrix.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`generate_confusion_matrix` function in "
+        #     + "`confusion_matrix.py` needs to be implemented"
+        # )
+        confusion_matrix[target, prediction] += 1
         
         ##########################################################################
         # Student code ends here
@@ -112,10 +131,15 @@ def generate_confusion_matrix(
         # Student code begins here
         ##########################################################################
     
-        raise NotImplementedError(
-            "`generate_confusion_matrix` function in "
-            + "`confusion_matrix.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`generate_confusion_matrix` function in "
+        #     + "`confusion_matrix.py` needs to be implemented"
+        # )
+
+        for i in range(num_classes):
+            sum_of_rows = confusion_matrix[i].sum()
+            if sum_of_rows > 0:
+                confusion_matrix[i] = confusion_matrix[i] / sum_of_rows
     
         ##########################################################################
         # Student code ends here
@@ -215,6 +239,7 @@ def get_pred_images_for_target(
                            but actually belong to <target_class>
     """
     model.eval()
+    device = next(model.parameters()).device
     dataset_list = dataset.dataset
     indices = []
     image_paths = []
@@ -229,6 +254,7 @@ def get_pred_images_for_target(
     for i, (inp, _) in enumerate(loader):
         if use_cuda:
             inp = inp.cuda()
+        inp = inp.to(device)
         logits = model(inp)
         p = torch.argmax(logits, dim=1)
         preds.append(p)
@@ -262,24 +288,39 @@ def generate_accuracy_data(
 
     batch_size = 32
     cuda = use_cuda and torch.cuda.is_available()
-    dataloader_args = {"num_workers": 1, "pin_memory": True} if cuda else {}
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    dataloader_args = {"num_workers": 1, "pin_memory": True} if device.type != "cpu" else {}
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, **dataloader_args)
-
-    preds = np.zeros((len(dataset), num_attributes)).astype(np.int32)
-    targets = np.zeros((len(dataset), num_attributes)).astype(np.int32)
+    
+    preds = torch.zeros((len(dataset), num_attributes), dtype=torch.int32, device=device)
+    targets = torch.zeros((len(dataset), num_attributes), dtype=torch.int32, device=device)
     # label_to_idx = dataset.get_classes()
     # class_labels = [""] * len(label_to_idx)
-
+    model = model.to(device)
     model.eval()
     ##########################################################################
     # Student code begins here
     ##########################################################################
 
-    raise NotImplementedError(
-            "`generate_accuracy_data` function in "
-            + "`confusion_matrix.py` needs to be implemented"
-        )
+    # raise NotImplementedError(
+    #         "`generate_accuracy_data` function in "
+    #         + "`confusion_matrix.py` needs to be implemented"
+    #     )
 
+    temp = 0
+
+    with torch.no_grad():
+
+        for img, labels in loader:
+            img = img.to(device).float()
+            labels = labels.to(device)
+            logits = model(img)
+            pred = (logits > 0).int()
+            batch = labels.size(0)
+            targets[temp:temp+batch] = labels
+            preds[temp:temp+batch] = pred
+            temp += batch
+        
     ##########################################################################
     # Student code ends here
     ##########################################################################
@@ -324,10 +365,15 @@ def generate_accuracy_table(
     # Student code begins here
     ##########################################################################
 
-    raise NotImplementedError(
-            "`generate_accuracy_table` function in "
-            + "`confusion_matrix.py` needs to be implemented"
-        )
+    # raise NotImplementedError(
+    #         "`generate_accuracy_table` function in "
+    #         + "`confusion_matrix.py` needs to be implemented"
+    #     )
+
+    accuracy_table = np.zeros(num_attributes, dtype=np.float32)
+    for i in range(num_attributes):
+        calc = np.sum(preds[:, i] == targets[:, i])
+        accuracy_table[i] = calc / float(targets.shape[0])
 
     ##########################################################################
     # Student code ends here
