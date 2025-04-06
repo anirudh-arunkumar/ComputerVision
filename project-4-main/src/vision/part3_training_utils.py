@@ -33,9 +33,47 @@ def get_model_and_optimizer(args) -> Tuple[nn.Module, torch.optim.Optimizer]:
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`get_model_and_optimizer()` function in ' +
-        '`part3_training_utils.py` needs to be implemented')
+    # raise NotImplementedError('`get_model_and_optimizer()` function in ' +
+    #     '`part3_training_utils.py` needs to be implemented')
+    num_classes = getattr(args, "num_classes", getattr(args, "classes", None))
 
+    if num_classes is None:
+        raise ValueError("there is something wrong with num_classes")
+    if getattr(args, "arch", "simple") == "psp":
+        model = PSPNet(pretrained=False, num_classes=args.classes)
+    else:
+        model = SimpleSegmentationNet(pretrained=False, num_classes=args.classes, deep_base=True)
+    
+    groups = [
+        {
+            "params": list(model.layer0.parameters()) + list(model.resnet.layer1.parameters()),
+            "lr": args.base_lr,
+        },
+        {
+            "params": model.resnet.layer2.parameters(),
+            "lr": args.base_lr
+        },
+        {
+            "params": model.resnet.layer3.parameters(),
+            "lr": args.base_lr,
+        },
+        {
+            "params": model.resnet.layer4.parameters(),
+            "lr": args.base_lr,
+        },
+        {
+            "params": model.cls.parameters(),
+            "lr": args.base_lr * 10,
+        },
+    ]
+
+    if hasattr(model, "ppm"):
+        groups.append({
+            "params": model.ppm.parameters(),
+            "lr": args.base_lr * 10,
+        })
+
+    optimizer = torch.optim.SGD(groups, momentum=args.momentum, weight_decay=args.weight_decay)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -110,8 +148,21 @@ def get_train_transform(args) -> transform.Compose:
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`get_train_transform()` function in ' +
-        '`part3_training_utils.py` needs to be implemented')
+    # raise NotImplementedError('`get_train_transform()` function in ' +
+    #     '`part3_training_utils.py` needs to be implemented')
+
+    ignored = getattr(args, "ignore_label", 255)
+
+    train_transform = transform.Compose([
+        transform.ResizeShort(args.short_size),
+        transform.RandomHorizontalFlip(),
+        transform.RandomGaussianBlur(),
+        transform.RandRotate(rotate=(args.rotate_min, args.rotate_max), padding=mean, ignore_label=ignored, p=0.5),
+        transform.RandScale(scale=(args.scale_min, args.scale_max)),
+        transform.Crop((args.train_h, args.train_w), crop_type="rand", padding=mean, ignore_label=ignored),
+        transform.ToTensor(),
+        transform.Normalize(mean=mean, std=std)
+    ])
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -146,8 +197,17 @@ def get_val_transform(args) -> transform.Compose:
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`get_val_transform()` function in ' +
-        '`part3_training_utils.py` needs to be implemented')
+    # raise NotImplementedError('`get_val_transform()` function in ' +
+    #     '`part3_training_utils.py` needs to be implemented')
+
+    ignored = getattr(args, "ignore_label", 255)
+
+    val_transform = transform.Compose([
+        transform.ResizeShort(args.short_size),
+        transform.Crop((args.train_h, args.train_w), crop_type="center", padding=mean, ignore_label=ignored),
+        transform.ToTensor(),
+        transform.Normalize(mean=mean, std=std)
+    ])
 
     ###########################################################################
     #                             END OF YOUR CODE                            #

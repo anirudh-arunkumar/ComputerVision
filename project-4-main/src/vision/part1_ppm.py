@@ -46,13 +46,23 @@ class PPM(nn.Module):
         # TODO: YOUR CODE HERE                                                #
         #######################################################################
 
-        raise NotImplementedError('`__init__()` function in ' +
-            '`part1_ppm.py` needs to be implemented')
+        # raise NotImplementedError('`__init__()` function in ' +
+        #     '`part1_ppm.py` needs to be implemented')
+        
+        for s in bins:
+            module = nn.Sequential(
+                nn.AdaptiveAvgPool2d(s),
+                nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=False),
+                nn.BatchNorm2d(reduction_dim, affine=False),
+                nn.ReLU(inplace=True)
+            )
+            self.features.append(module)
+        
+        self.features = nn.ModuleList(self.features)
 
         #######################################################################
         #                             END OF YOUR CODE                        #
         #######################################################################
-        self.features = nn.ModuleList(self.features)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -78,9 +88,19 @@ class PPM(nn.Module):
         # TODO: YOUR CODE HERE                                                #
         #######################################################################
 
-        raise NotImplementedError('`forward()` function in ' +
-            '`part1_ppm.py` needs to be implemented')
+        # raise NotImplementedError('`forward()` function in ' +
+        #     '`part1_ppm.py` needs to be implemented')
 
+        output = [x]
+
+        H, W = x.shape[2], x.shape[3]
+
+        for m in self.features:
+            p = m(x)
+            upsample = F.interpolate(p, size=(H, W), mode="bilinear", align_corners=True)
+            output.append(upsample)
+        
+        output = torch.cat(output, dim=1)
         #######################################################################
         #                             END OF YOUR CODE                        #
         #######################################################################

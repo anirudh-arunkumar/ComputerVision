@@ -75,7 +75,7 @@ class SimpleSegmentationNet(nn.Module):
 
         x = self.cls(x)
 
-        aux_loss = torch.Tensor([0])
+        
 
         ########################################################################
         # TODO: YOUR CODE HERE                                                 #
@@ -84,10 +84,16 @@ class SimpleSegmentationNet(nn.Module):
         # pixel (yhat).                                                        #
         ########################################################################
 
-        raise NotImplementedError('`forward()` function in ' +
-            '`part4_segmentation_net.py` needs to be implemented')
-
-
+        # raise NotImplementedError('`forward()` function in ' +
+        #     '`part4_segmentation_net.py` needs to be implemented')
+        aux_loss = torch.Tensor([0]).to(x.device)
+        logits = F.interpolate(x, size=(H, W), mode="bilinear", align_corners=True)
+        yhat = torch.argmax(logits, dim=1)
+        if y is not None:
+            main_loss = self.criterion(logits, y)
+        else:
+            main_loss = None
+            aux_loss = None
         #######################################################################
         #                             END OF YOUR CODE                        #
         #######################################################################

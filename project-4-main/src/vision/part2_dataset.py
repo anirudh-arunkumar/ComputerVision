@@ -40,9 +40,26 @@ def make_dataset(split: str, data_root: str, data_list_fpath: str) -> List[Tuple
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`make_dataset()` function in ' +
-        '`part2_dataset.py` needs to be implemented')
+    # raise NotImplementedError('`make_dataset()` function in ' +
+    #     '`part2_dataset.py` needs to be implemented')
+    image_label_list = []
+    with open(data_list_fpath, 'r') as file:
 
+        for l in file:
+            line = l.strip()
+            if not line:
+                continue
+                
+            sub_line = line.split()
+            
+            if len(sub_line) != 2:
+                raise ValueError("not two lines")
+
+            img, label = sub_line
+
+            abs_path = os.path.join(data_root, img)
+            abs_label = os.path.join(data_root, label)
+            image_label_list.append((abs_path, abs_label))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
