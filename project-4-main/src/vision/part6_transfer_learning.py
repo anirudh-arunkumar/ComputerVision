@@ -79,8 +79,16 @@ def model_and_optimizer(args, model) -> Tuple[nn.Module, torch.optim.Optimizer]:
     # TODO: YOUR CODE HERE                                                    #
     ###########################################################################
 
-    raise NotImplementedError('`model_and_optimizer()` function in ' +
-        '`part6_transfer_learning.py` needs to be implemented')
+    # raise NotImplementedError('`model_and_optimizer()` function in ' +
+    #     '`part6_transfer_learning.py` needs to be implemented')
+
+    model.cls = nn.Sequential(
+        nn.Conv2d(4096, 2, kernel_size=1)
+    )
+    device = next(model.parameters()).device
+    model = model.to(device)
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     ###########################################################################
     #                             END OF YOUR CODE                            #

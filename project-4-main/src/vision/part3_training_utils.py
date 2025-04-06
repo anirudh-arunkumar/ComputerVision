@@ -39,33 +39,60 @@ def get_model_and_optimizer(args) -> Tuple[nn.Module, torch.optim.Optimizer]:
 
     if num_classes is None:
         raise ValueError("there is something wrong with num_classes")
-    if getattr(args, "arch", "simple") == "psp":
+    
+    lower_arch = getattr(args, "arch", "simple").lower()
+
+    if lower_arch in ["psp", "pspnet"]:
         model = PSPNet(pretrained=False, num_classes=args.classes)
     else:
         model = SimpleSegmentationNet(pretrained=False, num_classes=args.classes, deep_base=True)
     
-    groups = [
-        {
-            "params": list(model.layer0.parameters()) + list(model.resnet.layer1.parameters()),
-            "lr": args.base_lr,
-        },
-        {
-            "params": model.resnet.layer2.parameters(),
-            "lr": args.base_lr
-        },
-        {
-            "params": model.resnet.layer3.parameters(),
-            "lr": args.base_lr,
-        },
-        {
-            "params": model.resnet.layer4.parameters(),
-            "lr": args.base_lr,
-        },
-        {
-            "params": model.cls.parameters(),
-            "lr": args.base_lr * 10,
-        },
-    ]
+    if hasattr(model, "resnet"):
+        groups = [
+            {
+                "params": list(model.layer0.parameters()) + list(model.resnet.layer1.parameters()),
+                "lr": args.base_lr,
+            },
+            {
+                "params": model.resnet.layer2.parameters(),
+                "lr": args.base_lr
+            },
+            {
+                "params": model.resnet.layer3.parameters(),
+                "lr": args.base_lr,
+            },
+            {
+                "params": model.resnet.layer4.parameters(),
+                "lr": args.base_lr,
+            },
+            {
+                "params": model.cls.parameters(),
+                "lr": args.base_lr * 10,
+            },
+        ]
+    else:
+        groups = [
+            {
+                "params": list(model.layer0.parameters()) + list(model.layer1.parameters()),
+                "lr": args.base_lr,
+            },
+            {
+                "params": model.layer2.parameters(),
+                "lr": args.base_lr
+            },
+            {
+                "params": model.layer3.parameters(),
+                "lr": args.base_lr,
+            },
+            {
+                "params": model.layer4.parameters(),
+                "lr": args.base_lr,
+            },
+            {
+                "params": model.cls.parameters(),
+                "lr": args.base_lr * 10,
+            },
+        ]
 
     if hasattr(model, "ppm"):
         groups.append({

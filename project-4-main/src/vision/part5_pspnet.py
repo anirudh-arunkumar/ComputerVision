@@ -3,7 +3,6 @@ from typing import Optional, Tuple
 import torch
 import torch.nn.functional as F
 from torch import nn
-
 from src.vision.resnet import resnet50
 from src.vision.part1_ppm import PPM
 
@@ -64,8 +63,27 @@ class PSPNet(nn.Module):
         # layer0, layer1, layer2, layer3, layer4. Note: layer0 should be sequential #
         #############################################################################
 
-        raise NotImplementedError('`__init__()` function in ' +
-            '`part5_pspnet.py` needs to be implemented')
+        # raise NotImplementedError('`__init__()` function in ' +
+        #     '`part5_pspnet.py` needs to be implemented')
+
+        back = resnet50(pretrained=pretrained, deep_base=deep_base)
+        self.layer0 = nn.Sequential(
+            back.conv1,
+            back.bn1,
+            back.relu,
+            back.conv2,
+            back.bn2,
+            back.relu,
+            back.conv3,
+            back.bn3,
+            back.relu,
+            back.maxpool,
+        )
+
+        self.layer1 = back.layer1
+        self.layer2 = back.layer2
+        self.layer3 = back.layer3
+        self.layer4 = back.layer4
 
         #######################################################################
         #                             END OF YOUR CODE                        #
@@ -81,8 +99,17 @@ class PSPNet(nn.Module):
         # to the classifier
         ###########################################################################
 
-        raise NotImplementedError('`__init__()` function in ' +
-            '`part5_pspnet.py` needs to be implemented')
+        # raise NotImplementedError('`__init__()` function in ' +
+        #     '`part5_pspnet.py` needs to be implemented')
+
+        fea_dim = 2048
+        if self.use_ppm:
+            red = fea_dim // len(bins)
+            self.ppm = PPM(in_dim=fea_dim, reduction_dim=red, bins=bins)
+            fea_dim = fea_dim + len(bins) * red
+        else:
+            self.ppm = None
+        
 
         #######################################################################
         #                             END OF YOUR CODE                        #
@@ -109,9 +136,26 @@ class PSPNet(nn.Module):
         # TODO: YOUR CODE HERE                                                #
         #######################################################################
 
-        raise NotImplementedError('`__replace_conv_with_dilated_conv()` ' +
-            'function in `part5_pspnet.py` needs to be implemented')
-
+        # raise NotImplementedError('`__replace_conv_with_dilated_conv()` ' +
+        #     'function in `part5_pspnet.py` needs to be implemented')
+        
+        for n, mod in self.layer3.named_modules():
+            if "conv2" in n and isinstance(mod, nn.Conv2d):
+                mod.stride = (1, 1)
+                mod.dilation = (2, 2)
+                mod.padding = (2,2)
+            
+            if "downsample.0" in n and isinstance(mod, nn.Conv2d):
+                mod.stride = (1,1)
+            
+        for n, mod in self.layer4.named_modules():
+            if "conv2" in n and isinstance(mod, nn.Conv2d):
+                mod.stride = (1, 1)
+                mod.dilation = (4, 4)
+                mod.padding = (4,4)
+            
+            if "downsample.0" in n and isinstance(mod, nn.Conv2d):
+                mod.stride = (1,1)
         #######################################################################
         #                             END OF YOUR CODE                        #
         #######################################################################
@@ -140,8 +184,16 @@ class PSPNet(nn.Module):
         # TODO: YOUR CODE HERE                                                #
         #######################################################################
 
-        raise NotImplementedError('`__create_classifier()` function in ' +
-            '`part5_pspnet.py` needs to be implemented')
+        # raise NotImplementedError('`__create_classifier()` function in ' +
+        #     '`part5_pspnet.py` needs to be implemented')
+
+        cls = nn.Sequential(
+            nn.Conv2d(in_feats, out_feats, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(out_feats),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(self.dropout),
+            nn.Conv2d(out_feats, num_classes, kernel_size=1, stride=1, padding=0)
+        )
 
         #######################################################################
         #                             END OF YOUR CODE                        #
@@ -198,9 +250,36 @@ class PSPNet(nn.Module):
         # TODO: YOUR CODE HERE                                                #
         #######################################################################
 
-        raise NotImplementedError('`forward()` function in ' +
-            '`part5_pspnet.py` needs to be implemented')
+        # raise NotImplementedError('`forward()` function in ' +
+        #     '`part5_pspnet.py` needs to be implemented')
 
+        x = self.layer0(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        au = self.layer3(x)
+        x = self.layer4(au)
+
+        if self.use_ppm and self.ppm is not None:
+            x = self.ppm(x)
+        
+        main_l = self.cls(x)
+        aux_l = self.aux(au)
+
+        if self.zoom_factor != 1:
+            W = -(-x_size[3] * self.zoom_factor // 8)
+            H = -(-x_size[2] * self.zoom_factor // 8)
+
+            main_l = F.interpolate(main_l, size=(H, W), mode="bilinear", align_corners=True)
+            aux_l = F.interpolate(aux_l, size=(H, W), mode="bilinear", align_corners=True)
+        
+        yhat = torch.argmax(main_l, dim=1)
+        main_loss =None
+        aux_loss = None
+
+        if y is not None:
+            main_loss = self.criterion(main_l, y)
+            aux_loss = self.criterion(aux_l, y)
+        logits = main_l
         #######################################################################
         #                             END OF YOUR CODE                        #
         #######################################################################
