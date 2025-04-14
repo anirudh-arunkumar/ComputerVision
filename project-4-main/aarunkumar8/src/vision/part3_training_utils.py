@@ -41,7 +41,7 @@ def get_model_and_optimizer(args) -> Tuple[nn.Module, torch.optim.Optimizer]:
     if lower_arch in ["psp", "pspnet"]:
         model = PSPNet(pretrained=True, num_classes=args.classes)
     else:
-        model = SimpleSegmentationNet(pretrained=False, num_classes=args.classes, deep_base=True)
+        model = SimpleSegmentationNet(pretrained=True, num_classes=args.classes, deep_base=True)
     
     if hasattr(model, "resnet"):
         groups = [
