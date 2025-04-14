@@ -1,5 +1,6 @@
 required_directories:
   - src
+  - initmodel
 required_files:
   - setup.cfg
   - pyproject.toml
