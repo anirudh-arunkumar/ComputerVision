@@ -41,11 +41,51 @@ class PointNet(nn.Module):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`__init__` function in "
-            + "`part3_pointnet.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`__init__` function in "
+        #     + "`part3_pointnet.py` needs to be implemented"
+        # )
 
+        # self.encoder_head == nn.Sequential(
+        #     nn.Conv2d(in_dim, hidden_dims[0], 1),
+        #     nn.BatchNorm1d(hidden_dims[0]),
+        #     nn.ReLU(),
+        #     nn.Conv2d(hidden_dims[0], hidden_dims[1], 1),
+        #     nn.BatchNorm1d(hidden_dims[1]),
+        #     nn.ReLU(),
+        #     nn.Conv1d(hidden_dims[1], hidden_dims[2], 1),
+        #     nn.BatchNorm1d(hidden_dims[2]),
+        #     nn.ReLU(),
+        # )
+
+        dimensions = [
+            in_dim,
+            hidden_dims[0],
+            hidden_dims[0],
+            hidden_dims[1],
+            hidden_dims[2]
+        ]
+
+
+        e_layers = []
+        for i in range(4):
+            e_layers.append(nn.Linear(dimensions[i], dimensions[i + 1]))
+
+            if i < 3:
+                e_layers.append(nn.BatchNorm1d(dimensions[i+1]))
+                e_layers.append(nn.ReLU())
+        self.encoder_head = nn.Sequential(*e_layers)
+
+        prev = hidden_dims[2]
+        class_layers = []
+        for d in classifier_dims:
+            class_layers.append(nn.Linear(prev, d))
+            class_layers.append(nn.ReLU())
+            class_layers.append(nn.Dropout(p=0.3))
+            prev = d
+        
+        class_layers.append(nn.Linear(prev, classes))
+        self.classifier_head = nn.Sequential(*class_layers)
         ############################################################################
         # Student code end
         ############################################################################
@@ -72,11 +112,20 @@ class PointNet(nn.Module):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`forward` function in "
-            + "`part3_pointnet.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`forward` function in "
+        #     + "`part3_pointnet.py` needs to be implemented"
+        # )
 
+        B, N, i = x.shape
+
+        flatt = x.view(B * N, -1)
+        henc = self.encoder_head(flatt)
+        encodings = henc.view(B, N, -1)
+
+        glob_feat, i = encodings.max(dim=1)
+
+        class_outputs = self.classifier_head(glob_feat)
         ############################################################################
         # Student code end
         ############################################################################

@@ -35,10 +35,23 @@ def get_critical_indices(model: Union[PointNet, PointNetTNet], pts: torch.Tensor
     # Student code begin
     ############################################################################
 
-    raise NotImplementedError(
-        "`get_critical_indices` function in "
-        + "`part4_pointnet.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`get_critical_indices` function in "
+    #     + "`part4_pointnet.py` needs to be implemented"
+    # )
+
+    model.eval()
+
+    with torch.no_grad():
+        input = pts.unsqueeze(0)
+        i, en = model(input)
+        enc = en[0]
+
+        max_indices = torch.argmax(enc, dim=0)
+        unique = torch.unique(max_indices)
+    model.train()
+
+    crit_indices = unique.cpu().numpy()
 
     ############################################################################
     # Student code end
@@ -91,15 +104,44 @@ def get_confusion_matrix(
     # Student code begin
     ############################################################################
 
-    raise NotImplementedError(
-        "`get_confusion_matrix` function in "
-        + "`part4_pointnet.py` needs to be implemented"
-    )
+    # raise NotImplementedError(
+    #     "`get_confusion_matrix` function in "
+    #     + "`part4_pointnet.py` needs to be implemented"
+    # )
+
+    confusion_matrix = np.zeros((num_classes, num_classes), dtype=np.int64)
+    true_c = np.zeros((num_classes,), dtype=np.int64)
+
+    with torch.no_grad():
+        for batch, label in loader:
+            batch = batch.to(device)
+            label = label.to(device)
+
+            output, i = model(batch)
+            prediction = output.argmax(dim=1)
+
+            gr = label.cpu().numpy()
+            pred = prediction.cpu().numpy()
+
+            for g, p in zip(gr, pred):
+                confusion_matrix[g, p] += 1
+                true_c[g] += 1
+
+    
 
     ############################################################################
     # Student code end
     ############################################################################
 
     model.train()
+
+    if normalize:
+
+        r_sum = true_c.astype(np.float32)
+        confusion_matrix = confusion_matrix.astype(np.float32)
+
+        for i in range(num_classes):
+            if r_sum[i] > 0:
+                confusion_matrix[i, :] /= r_sum[i]
 
     return confusion_matrix

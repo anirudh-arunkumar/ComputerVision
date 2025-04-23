@@ -25,7 +25,7 @@ class Baseline(nn.Module):
         assert mode in ["count", "occupancy"]
 
         super().__init__()
-
+        self.__module__ = 'vision.part2_baseline'
         self.classifier = None
         self.voxel_resolution = voxel_resolution
         self.mode = mode
@@ -74,29 +74,23 @@ class Baseline(nn.Module):
         # )
 
         B, N, dim = x.shape
-        features = []
+        output = []
         res = self.voxel_resolution
 
         for b in range(B):
             pts = x[b]
 
-            maxes = pts.max(dim=0).values
-            mins = pts.min(dim=0).values
+            maxes = pts.max(0).values
+            mins = pts.min(0).values
 
-            ranges = []
-
-            for i in range(dim):
-                min_val = mins[i].item()
-                max_val = maxes[i].item()
-                ranges.append((min_val, max_val))
+            ranges = (mins[0].item(), maxes[0].item(), mins[1].item(), maxes[1].item(), mins[2].item(), maxes[2].item())
             
-            h, i = torch.histrogramdd(sample=pts, bins=[res, res, res], range=ranges, density=False)
+            h, i = torch.histogramdd(input=pts, bins=(res, res, res), range=ranges, density=False)
 
-            histogram = h.flatten()
-            histogram = histogram / N
-            features.append(histogram)
+            histogram = h.flatten().to(torch.float32) / N
+            output.append(histogram)
         
-        counts = torch.stack(features, dim=0)
+        counts = torch.stack(output, dim=0)
         ############################################################################
         # Student code end
         ############################################################################
@@ -123,10 +117,18 @@ class Baseline(nn.Module):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`forward` function in "
-            + "`part2_baseline.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`forward` function in "
+        #     + "`part2_baseline.py` needs to be implemented"
+        # )
+
+        features = self.count_points(x)
+
+        if self.mode == "occupancy":
+            features = (features > 0).to(torch.float32)
+
+        class_outputs = self.classifier(features)
+
 
         ############################################################################
         # Student code end
