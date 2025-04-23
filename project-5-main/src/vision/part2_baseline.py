@@ -27,17 +27,20 @@ class Baseline(nn.Module):
         super().__init__()
 
         self.classifier = None
-        self.voxel_resolution = None
-        self.mode = None
+        self.voxel_resolution = voxel_resolution
+        self.mode = mode
 
         ############################################################################
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`__init__` function in "
-            + "`part2_baseline.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`__init__` function in "
+        #     + "`part2_baseline.py` needs to be implemented"
+        # )
+
+        input_features = voxel_resolution ** 3
+        self.classifier = nn.Linear(input_features, classes)
 
         ############################################################################
         # Student code end
@@ -65,11 +68,35 @@ class Baseline(nn.Module):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`count_points` function in "
-            + "`part2_baseline.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`count_points` function in "
+        #     + "`part2_baseline.py` needs to be implemented"
+        # )
 
+        B, N, dim = x.shape
+        features = []
+        res = self.voxel_resolution
+
+        for b in range(B):
+            pts = x[b]
+
+            maxes = pts.max(dim=0).values
+            mins = pts.min(dim=0).values
+
+            ranges = []
+
+            for i in range(dim):
+                min_val = mins[i].item()
+                max_val = maxes[i].item()
+                ranges.append((min_val, max_val))
+            
+            h, i = torch.histrogramdd(sample=pts, bins=[res, res, res], range=ranges, density=False)
+
+            histogram = h.flatten()
+            histogram = histogram / N
+            features.append(histogram)
+        
+        counts = torch.stack(features, dim=0)
         ############################################################################
         # Student code end
         ############################################################################

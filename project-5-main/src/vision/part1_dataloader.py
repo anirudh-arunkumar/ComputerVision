@@ -33,10 +33,30 @@ class Argoverse(Dataset):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`load_path_with_classes` function in "
-            + "`part1_dataloader.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`load_path_with_classes` function in "
+        #     + "`part1_dataloader.py` needs to be implemented"
+        # )
+
+        for c_name in sorted(os.listdir(data_root)):
+            c_directory = os.path.join(data_root, c_name)
+
+            if not os.path.isdir(c_directory):
+                continue
+            class_list.append(c_name)
+
+            for f in os.listdir(c_directory):
+
+                if not f.endswith(".txt"):
+                    continue
+                
+                index = int(os.path.splitext(f)[0])
+                in_train = index <= 169
+
+                if (split == "train" and in_train) or (split == "test" and not in_train):
+                    f_path = os.path.join(c_directory, f)
+                    pairs.append((f_path, c_name))
+        
 
         ############################################################################
         # Student code end
@@ -65,10 +85,13 @@ class Argoverse(Dataset):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`get_class_dict` function in "
-            + "`part1_dataloader.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`get_class_dict` function in "
+        #     + "`part1_dataloader.py` needs to be implemented"
+        # )
+
+        for i, c, in enumerate(sorted(class_list)):
+            classes[c] = i
 
         ############################################################################
         # Student code end
@@ -111,16 +134,32 @@ class Argoverse(Dataset):
         -   pts: A tensor of shape (N, 3) where N is the number of points in the file
         """
 
-        pts = None
+        pts = []
 
         ############################################################################
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`get_points_from_file` function in "
-            + "`part1_dataloader.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`get_points_from_file` function in "
+        #     + "`part1_dataloader.py` needs to be implemented"
+        # )
+
+        with open(path, 'r') as file:
+            _ = file.readline()
+            for l in file:
+                
+                l = l.strip()
+
+                if not l:
+                    continue
+                    
+                a, b, c = l.split()
+                
+                pts.append([float(a), float(b), float(c)])
+        pts = torch.tensor(pts, dtype=torch.float32)
+
+        
 
         ############################################################################
         # Student code end
@@ -147,10 +186,20 @@ class Argoverse(Dataset):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`pad_points` function in "
-            + "`part1_dataloader.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`pad_points` function in "
+        #     + "`part1_dataloader.py` needs to be implemented"
+        # )
+
+        if pts.shape[0] >= self.pad_size:
+            return pts[:self.pad_size]
+        
+        n = pts.shape[0]
+        first = pts[0:1]
+        pad = self.pad_size - n
+        pts_pad = first.repeat(pad, 1)
+
+        return torch.cat([pts, pts_pad], dim = 0)
 
         ############################################################################
         # Student code end
@@ -181,10 +230,18 @@ class Argoverse(Dataset):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`__getitem__` function in "
-            + "`part1_dataloader.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`__getitem__` function in "
+        #     + "`part1_dataloader.py` needs to be implemented"
+        # )
+        pth, c = self.instances[i]
+
+        pts = self.get_points_from_file(path=pth)
+        pts = self.pad_points(pts=pts)
+        label = torch.tensor(self.class_dict[c], dtype=torch.long)
+
+
+        
 
         ############################################################################
         # Student code end
@@ -206,10 +263,11 @@ class Argoverse(Dataset):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`__len__` function in "
-            + "`part1_dataloader.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`__len__` function in "
+        #     + "`part1_dataloader.py` needs to be implemented"
+        # )
+        l = len(self.instances)
 
         ############################################################################
         # Student code end
