@@ -38,16 +38,46 @@ class TNet(nn.Module):
 
         self.encoder_head = None
         self.regression_head = None
-        self.in_dim = None
+        self.in_dim = in_dim
 
         ############################################################################
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`__init__` function in "
-            + "`part5_tnet.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`__init__` function in "
+        #     + "`part5_tnet.py` needs to be implemented"
+        # )
+
+        dimensions = [
+            in_dim,
+            hidden_dims[0],
+            hidden_dims[0],
+            hidden_dims[1],
+            hidden_dims[2]
+        ]
+
+        e_layers = []
+        for i in range(4):
+            e_layers.append(nn.Linear(dimensions[i], dimensions[i + 1]))
+
+            if i < 3:
+                e_layers.append(nn.BatchNorm1d(dimensions[i+1]))
+                e_layers.append(nn.ReLU())
+        self.encoder_head = nn.Sequential(*e_layers)
+
+        regression_dimension = [hidden_dims[2], *regression_dims, in_dim * in_dim]
+        r_layers = []
+
+        for i in range(len(regression_dimension) - 1):
+
+            r_layers.append(nn.Linear((regression_dimension[i]), regression_dimension[i + 1]))
+
+            if i < len(regression_dimension) - 2:
+                r_layers.append(nn.ReLU())
+        
+        self.regression_head = nn.Sequential(*r_layers)
+
 
         ############################################################################
         # Student code end
@@ -76,10 +106,24 @@ class TNet(nn.Module):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`forward` function in "
-            + "`part5_tnet.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`forward` function in "
+        #     + "`part5_tnet.py` needs to be implemented"
+        # )
+
+        B, N, i = x.shape
+
+        f = x.view(B * N, -1)
+        head = self.encoder_head(f)
+        head = head.view(B, N, -1)
+
+        glob_features, i = head.max(dim=1)
+        r_head = self.regression_head(glob_features)
+
+        bias = torch.eye(self.in_dim, device=x.device).view(1, self.in_dim * self.in_dim)
+        r_head = r_head + bias
+
+        transform_matrices = r_head.view(B, self.in_dim, self.in_dim)
 
         ############################################################################
         # Student code end
@@ -125,9 +169,25 @@ class PointNetTNet(nn.Module):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`__init__` function in "
-            + "`part5_tnet.py` needs to be implemented"
+        # raise NotImplementedError(
+        #     "`__init__` function in "
+        #     + "`part5_tnet.py` needs to be implemented"
+        # )
+
+        self.tnet = TNet(
+            in_dim=in_dim,
+            hidden_dims=tnet_hidden_dims,
+            regression_dims=tnet_regression_dims,
+            pts_per_obj=pts_per_obj
+
+        )
+
+        self.point_net = PointNet(
+            classes=classes,
+            in_dim=in_dim,
+            hidden_dims=hidden_dims,
+            classifier_dims=classifier_dims,
+            pts_per_obj=pts_per_obj
         )
 
         ############################################################################
@@ -158,10 +218,14 @@ class PointNetTNet(nn.Module):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`apply_tnet` function in "
-            + "`part5_tnet.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`apply_tnet` function in "
+        #     + "`part5_tnet.py` needs to be implemented"
+        # )
+
+        tnet = self.tnet(x)
+
+        x_transformed = torch.bmm(x, tnet)
 
         ############################################################################
         # Student code end
@@ -194,10 +258,14 @@ class PointNetTNet(nn.Module):
         # Student code begin
         ############################################################################
 
-        raise NotImplementedError(
-            "`forward` function in "
-            + "`part5_tnet.py` needs to be implemented"
-        )
+        # raise NotImplementedError(
+        #     "`forward` function in "
+        #     + "`part5_tnet.py` needs to be implemented"
+        # )
+
+        transformed = self.apply_tnet(x)
+        class_outputs, encodings = self.point_net(transformed)
+
 
         ############################################################################
         # Student code end
