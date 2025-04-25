@@ -30,7 +30,29 @@ class NerfModel(nn.Module):
         # Student code begins here
         ##########################################################################
         
-        raise NotImplementedError('`init` function in `NerfModel` needs to be implemented')
+        # raise NotImplementedError('`init` function in `NerfModel` needs to be implemented')
+
+        self.fc_layers_group1 = nn.Sequential(
+            nn.Linear(in_channels, filter_size),
+            nn.ReLU(True),
+            nn.Linear(filter_size, filter_size),
+            nn.ReLU(True),
+            nn.Linear(filter_size, filter_size),
+            nn.ReLU(True),
+        )
+
+        self.layer_4 = nn.Linear(filter_size, filter_size)
+
+        self.fc_layers_group2 = nn.Sequential(nn.Linear(filter_size * 2, filter_size), nn.ReLU(True), nn.Linear(filter_size, filter_size), nn.ReLU(True), nn.Linear(filter_size, filter_size), nn.ReLU(True), nn.Linear(filter_size, 4))
+
+        self.loss_criterion = nn.MSELoss()
+
+        def initialize(m):
+
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+        
+        self.apply(initialize)
 
         ##########################################################################
         # Student code ends here
@@ -62,7 +84,14 @@ class NerfModel(nn.Module):
         # Student code begins here
         ##########################################################################
        
-        raise NotImplementedError('`forward` function in `NerfModel` needs to be implemented')
+        # raise NotImplementedError('`forward` function in `NerfModel` needs to be implemented')
+
+        o1 = self.fc_layers_group1(x)
+        o4 = F.relu(self.layer_4(o1), True)
+        cat45 = torch.cat([o4, o1], dim=1)
+        o8 = self.fc_layers_group2(cat45)
+        rgb = torch.sigmoid(o8[..., :3])
+        sigma = F.relu(o8[..., 3], True)
 
         ##########################################################################
         # Student code ends here
@@ -99,7 +128,20 @@ def get_rays(height: int, width: int, intrinsics: torch.Tensor, tform_cam2world:
     # Student code begins here
     ##########################################################################
     
-    raise NotImplementedError('`get_rays()` function needs to be implemented')
+    # raise NotImplementedError('`get_rays()` function needs to be implemented')
+    device = intrinsics.device
+    x_f, y_f = intrinsics[0,0], intrinsics[1,1]
+    x_temp, y_temp = intrinsics[0,2], intrinsics[1,2]
+
+    i = torch.arange(height, device=device)
+    j = torch.arange(width, device=device)
+    i_mesh, j_mesh = torch.meshgrid(i, j, indexing='ij')
+
+    drc = torch.stack([(j_mesh - x_temp) / x_f, (i_mesh - y_temp) / y_f, torch.ones_like(i_mesh)], dim=-1)
+    mat = tform_cam2world[:3, :3]
+    t = tform_cam2world[:3, 3]
+    ray_directions = drc @ mat.T
+    ray_origins = t.view(1,1,3).expand(height, width, 3)
 
     ##########################################################################
     # Student code ends here
@@ -150,7 +192,29 @@ def sample_points_from_rays(
     # Student code begins here
     ##########################################################################
     
-    raise NotImplementedError('`sample_points_from_rays()` function needs to be implemented')
+    # raise NotImplementedError('`sample_points_from_rays()` function needs to be implemented')
+
+    device = ray_origins.device
+    H, W = ray_origins.shape[:2]
+    
+    if randomize:
+        index = torch.arange(num_samples, device=device, dtype=torch.float32)
+        values_t = index / num_samples
+        values_z = near_thresh * (1- values_t) + far_thresh * values_t
+        mids = 0.5 * (values_z[:-1] + values_z[1:])
+        high = torch.cat([mids, values_z[-1:]], dim=0)
+        lower = torch.cat([values_z[:1], mids], dim=0)
+        random_t = torch.rand((H, W, num_samples), device=device)
+        depth_values = lower + (high - lower) * random_t
+
+    else:
+        index = torch.arange(num_samples, dtype=torch.float32, device=device)
+        values_t = index / num_samples
+        values_z = near_thresh * (1 -values_t) + far_thresh * values_t
+        depth_values = values_z.view(1, 1, num_samples).expand(H, W,num_samples)
+
+    query_points = ray_origins.unsqueeze(2) + ray_directions.unsqueeze(2) * depth_values.unsqueeze(-1)
+
 
     ##########################################################################
     # Student code ends here
@@ -198,20 +262,26 @@ def compute_compositing_weights(sigma: torch.Tensor, depth_values: torch.Tensor)
     # Student code begins here
     ##########################################################################
     
-    raise NotImplementedError('`compute_compositing_weights()` function needs to be implemented')
-
+    # raise NotImplementedError('`compute_compositing_weights()` function needs to be implemented')
+    delts = depth_values[..., 1:] - depth_values[..., :-1]
+    delt_infa = 1e10 * torch.ones_like(delts[..., :1])
+    delts = torch.cat([delts, delt_infa], dim=-1)
+    alpha = 1. - torch.exp(-sigma * delts)
+    T = cumprod_exclusive(torch.exp(-sigma * delts))
+    w = alpha * T
+    weights = w
     ##########################################################################
     # Student code ends here
     ##########################################################################
 
     return weights
 
-def get_minibatches(inputs: torch.Tensor, chunksize: int = 1024 * 32) -> list[torch.Tensor]:
+def get_minibatches(inputs: torch.Tensor, csize: int = 1024 * 32) -> list[torch.Tensor]:
     """Takes a huge tensor (ray "bundle") and splits it into a list of minibatches.
     Each element of the list (except possibly the last) has dimension `0` of length
-    `chunksize`.
+    `csize`.
     """
-    return [inputs[i:i + chunksize] for i in range(0, inputs.shape[0], chunksize)]
+    return [inputs[i:i + csize] for i in range(0, inputs.shape[0], csize)]
 
 def render_image_nerf(height: int, width: int, intrinsics: torch.tensor, tform_cam2world: torch.tensor,
                       near_thresh: float, far_thresh: float, depth_samples_per_ray: int,
@@ -226,7 +296,7 @@ def render_image_nerf(height: int, width: int, intrinsics: torch.tensor, tform_c
     It is a good idea to "flatten" the height/width dimensions of the data when passing to the NeRF (maintain the color
     channel dimension) and then "unflatten" the outputs. 
     To avoid running into memory limits, it's recommended to use the given get_minibatches() helper function to 
-    divide up the input into chunks. For each minibatch, supply them to the model and then concatenate the corresponding
+    divide up the input into cs. For each minibatch, supply them to the model and then concatenate the corresponding
     output vectors from each minibatch to form the complete outpute vectors. 
     
     Args
@@ -262,8 +332,32 @@ def render_image_nerf(height: int, width: int, intrinsics: torch.tensor, tform_c
     # Student code begins here
     ##########################################################################
     
-    raise NotImplementedError('`render_image_nerf()` function needs to be implemented')
+    #raise NotImplementedError('`render_image_nerf()` function needs to be implemented')
     
+    ray_o, ray_d = get_rays(height, width, intrinsics, tform_cam2world)
+    pts, values_z = sample_points_from_rays(ray_o, ray_d, near_thresh, far_thresh, depth_samples_per_ray, randomize=rand)
+    H, W, N = values_z.shape
+
+    pts_flat = pts.reshape(-1, 3)
+    enc = encoding_function(pts_flat)
+    rgb_chunks = []
+    sigma_chunks = []
+
+    for chunk in get_minibatches(enc):
+        out_rgb_c, out_sig_c = model(chunk)
+        rgb_chunks.append(out_rgb_c)
+        sigma_chunks.append(out_sig_c)
+
+    flatt_rgb = torch.cat(rgb_chunks, dim=0)
+    flatt_sigma = torch.cat(sigma_chunks, dim=0)
+    rgb = flatt_rgb.view(H, W, N, 3)
+    sigma = flatt_sigma.view(H, W, N)
+
+    weights = compute_compositing_weights(sigma, values_z)
+
+    rgb_predicted = torch.sum(weights.unsqueeze(-1) * rgb, dim=2)
+    depth_predicted = torch.sum(weights * values_z, dim=2)
+
     ##########################################################################
     # Student code ends here
     ##########################################################################

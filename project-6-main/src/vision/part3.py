@@ -32,15 +32,11 @@ def train_nerf(images, tform_cam2world, cam_intrinsics, testpose, testimg, heigh
         display_every (int): Frequency of displaying results.
         seed (int): Random seed for reproducibility.
     """
-    # Number of functions used in the positional encoding
     encode = lambda x: positional_encoding(x, num_frequencies=num_frequencies)
     encode_channels = num_frequencies * 2 * 3 + 3
 
-    # Seed RNG, for repeatability
     torch.manual_seed(seed)
     np.random.seed(seed)
-
-    # Create output directory
     os.makedirs('output', exist_ok=True)
 
     """
@@ -57,8 +53,17 @@ def train_nerf(images, tform_cam2world, cam_intrinsics, testpose, testimg, heigh
     # Student code begins here
     ##########################################################################
     
-    raise NotImplementedError("Implement based on the above instructions.")
-
+    # raise NotImplementedError("Implement based on the above instructions.")
+    model = NerfModel(in_channels=encode_channels).to(device)
+    def weights_init(m):
+        
+        if isinstance(m, nn.Linear):
+            
+            nn.init.xavier_uniform_(m.weight)
+            
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
+    model.apply(weights_init)
     ##########################################################################
         # Student code ends here
     ##########################################################################
@@ -73,8 +78,10 @@ def train_nerf(images, tform_cam2world, cam_intrinsics, testpose, testimg, heigh
     # Student code begins here
     ##########################################################################
 
-    raise NotImplementedError("Implement based on the above instructions.")
-
+    # raise NotImplementedError("Implement based on the above instructions.")
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    testimg = testimg.to(device)
+    testpose = testpose.to(device)
     ##########################################################################
     # Student code ends here
     ##########################################################################
@@ -103,7 +110,8 @@ def train_nerf(images, tform_cam2world, cam_intrinsics, testpose, testimg, heigh
         # Student code begins here
         ##########################################################################
 
-        raise NotImplementedError("Implement based on the above instructions.")
+        # raise NotImplementedError("Implement based on the above instructions.")
+        rgb_predicted, l = render_image_nerf(height, width, cam_intrinsics.to(device), target_tform_cam2world, near_thresh, far_thresh, depth_samples_per_ray, encode, model, rand=True)
 
         ##########################################################################
         # Student code ends here
@@ -118,15 +126,14 @@ def train_nerf(images, tform_cam2world, cam_intrinsics, testpose, testimg, heigh
         # Student code begins here
         ##########################################################################
 
-        raise NotImplementedError("Implement based on the above instructions.")
-
+        # raise NotImplementedError("Implement based on the above instructions.")
+        loss = F.mse_loss(rgb_predicted, target_img)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
         ##########################################################################
         # Student code ends here
         ##########################################################################
-
-
-        optimizer.step()
-        optimizer.zero_grad()
 
         # Display results
         if i % display_every == 0: 
@@ -137,8 +144,9 @@ def train_nerf(images, tform_cam2world, cam_intrinsics, testpose, testimg, heigh
             # Student code begins here
             ##########################################################################
             
-            raise NotImplementedError("Implement based on the above instructions.")
-            
+            # raise NotImplementedError("Implement based on the above instructions.")
+            with torch.no_grad():
+                rgb_test, depth_predicted = render_image_nerf(height, width, cam_intrinsics.to(device), testpose, near_thresh, far_thresh, depth_samples_per_ray, encode, model, rand=False)
             ##########################################################################
             # Student code ends here
             ##########################################################################
@@ -152,8 +160,9 @@ def train_nerf(images, tform_cam2world, cam_intrinsics, testpose, testimg, heigh
             # Student code begins here
             ##########################################################################
             
-            raise NotImplementedError("Implement based on the above instructions.")
-
+            # raise NotImplementedError("Implement based on the above instructions.")
+            loss_tester = F.mse_loss(rgb_test, testimg)
+            psnr = -10.0 * torch.log10(loss_tester)
             ##########################################################################
             # Student code ends here
             ##########################################################################            

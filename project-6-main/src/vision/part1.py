@@ -45,8 +45,13 @@ def positional_encoding(x, num_frequencies=6, incl_input=True):
   #############################  1(a) BEGIN  ############################
   
   # encode input tensor and append the encoded tensor to the list of results.
-  raise NotImplementedError("You need to complete the codes in class positional_encoding!")
+  # raise NotImplementedError("You need to complete the codes in class positional_encoding!")
   
+  for i in range(num_frequencies):
+    frequency = (2. ** i) * np.pi
+    results.append(torch.sin(x * frequency))
+    results.append(torch.cos(x * frequency))
+
   #############################  1(a) END  ##############################
   return torch.cat(results, dim=-1)
 
@@ -79,8 +84,11 @@ class Model2d(nn.Module):
         # - layer_hidden: A hidden layer that keeps the dimensionality `hidden_features`.
         # - layer_out: Maps `hidden_features` to the output size of 3.
       
-        raise NotImplementedError("You need to complete the codes in class Model2d!")
+        # raise NotImplementedError("You need to complete the codes in class Model2d!")
         
+        self.layer_in = nn.Linear(in_features, hidden_features)
+        self.layer_hidden = nn.Linear(hidden_features, hidden_features)
+        self.layer_out = nn.Linear(hidden_features, 3)
         #############################  1(b) END  ##############################
 
         def weights_init(m):
@@ -96,7 +104,11 @@ class Model2d(nn.Module):
         # - Apply ReLU activation after `layer_in` and `layer`.
         # - Use Sigmoid activation after `layer_out` to ensure output values are in [0, 1].
 
-        raise NotImplementedError("You need to complete the codes in class Model2d!")
+        # raise NotImplementedError("You need to complete the codes in class Model2d!")
+
+        x = F.relu(self.layer_in(x))
+        x = F.relu(self.layer_hidden(x))
+        x = torch.sigmoid(self.layer_out(x))
        
         #############################  1(b) END  ##############################
         return x
